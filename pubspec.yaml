@@ -1,0 +1,94 @@
+name: legal_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  google_fonts: ^8.1.0
+  flutter_animate: ^4.5.2
+  shared_preferences: ^2.5.5
+  file_picker: ^11.0.2
+  mailer: ^6.1.0
+  flutter_quill: ^11.5.1
+  encrypt: ^5.0.3
+  docx_creator: any
+  xml: ^6.5.0
+  archive: ^3.6.1
+  webview_windows: 0.4.0
+  intl: ^0.20.2
+  excel: ^4.0.6
+  pdf: ^3.12.0
+  printing: ^5.14.3
+  url_launcher: ^6.3.2
+  path_provider: ^2.1.5
+  http: ^1.6.0
+  googleapis: ^16.0.0
+  googleapis_auth: ^2.3.2
+  extension_google_sign_in_as_googleapis_auth: ^3.0.0
+  flutter_dotenv: ^6.0.1
+  flutter_launcher_icons: ^0.14.4
+  rename: ^3.1.0
+  amplify_flutter: ^2.4.1
+  amplify_api: ^2.4.1
+  amplify_auth_cognito: ^2.4.1
+  amplify_storage_s3: ^2.4.1
+  record: ^7.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  postgres: ^3.5.11
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - assets/logo.png
+    - assets/CUnitedGold.png
+    - assets/legal_qr.jpeg
+    - assets/sign.png
+    - assets/seal.png
+    - assets/dashboard_bg.png
+    - assets/images/
+
+  fonts:
+    - family: Cinzel
+      fonts:
+        - asset: assets/fonts/Cinzel.ttf
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat.ttf
+
+dependency_overrides:
+  archive: ^3.6.1
+  docx_creator:
+    path: packages/docx_creator
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/logo.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/logo.png"
+    background_color: "#ffffff"
+    theme_color: "#ffffff"
+  windows:
+    generate: true
+    image_path: "assets/logo.png"
+    icon_size: 48

@@ -1,0 +1,31 @@
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - npm ci
+        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - git clone https://github.com/flutter/flutter.git -b stable
+        - export PATH="$PATH:`pwd`/flutter/bin"
+        - flutter clean
+        - flutter pub get
+        - touch .env
+        - ls -la amplify_outputs*
+        - echo "const amplifyConfig = '''" > lib/amplify_outputs.dart
+        - cat amplify_outputs.json >> lib/amplify_outputs.dart
+        - echo "''';" >> lib/amplify_outputs.dart
+        - cat lib/amplify_outputs.dart | head -5
+    build:
+      commands:
+        - flutter build web --release --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY
+  artifacts:
+    baseDirectory: build/web
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .pub-cache/**/*
