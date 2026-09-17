@@ -30,7 +30,7 @@ const schema = a.schema({
     authorities: a.string(),
     status: a.string(),
     payment_received: a.boolean(),
-  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read', 'create', 'update', 'delete'])]),
 
   Cases: a.model({
     client_id: a.integer(),
@@ -211,6 +211,93 @@ const schema = a.schema({
     price: a.string(),
     category: a.string(),
     data: a.json(),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+
+  ClientLicenses: a.model({
+    client_id: a.integer(),
+    license_type_id: a.integer(),
+    file_no: a.string(),
+    service_date: a.string(),
+    expiry_date: a.string(),
+    status: a.string(),
+    notes: a.string(),
+    created_at: a.string(),
+    updated_at: a.string(),
+    manual_client_name: a.string(),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+
+  LicenseBilling: a.model({
+    client_license_id: a.integer(),
+    amount: a.float(),
+    payment_status: a.string(),
+    invoice_no: a.string(),
+    payment_date: a.string(),
+    created_at: a.string(),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+
+  LicenseTypes: a.model({
+    name: a.string(),
+    description: a.string(),
+    created_at: a.string(),
+    updated_at: a.string(),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+
+  DealActivities: a.model({
+    deal_id: a.integer(),
+    type: a.string(),
+    title: a.string(),
+    description: a.string(),
+    due_date: a.string(),
+    is_completed: a.boolean(),
+    created_by: a.integer(),
+    created_at: a.string(),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+
+  DealAssignees: a.model({
+    deal_id: a.integer(),
+    user_id: a.integer(),
+    role: a.string(),
+    assigned_at: a.string(),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+
+  DealHandoverHistory: a.model({
+    deal_id: a.integer(),
+    from_user_id: a.integer(),
+    to_user_id: a.integer(),
+    note: a.string(),
+    handed_over_at: a.string(),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+
+  DealStageHistory: a.model({
+    deal_id: a.integer(),
+    from_stage: a.string(),
+    to_stage: a.string(),
+    changed_by: a.integer(),
+    changed_at: a.string(),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+
+  CompanyBills: a.model({
+    category: a.string(),
+    title: a.string(),
+    amount: a.float(),
+    bill_date: a.string(),
+    status: a.string(),
+    description: a.string(),
+    created_at: a.string(),
+    spent_by: a.integer(),
+    spent_by_name: a.string(),
+  }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
+
+  DscRecords: a.model({
+    username: a.string(),
+    password: a.string(),
+    client_name: a.string(),
+    email_id: a.string(),
+    phone_no: a.string(),
+    dsc_taken_date: a.string(),
+    dsc_expiry_date: a.string(),
+    created_at: a.string(),
+    updated_at: a.string(),
   }).authorization(allow => [allow.group('Admin').to(['read', 'create', 'update', 'delete']), allow.group('Manager').to(['read', 'create', 'update', 'delete']), allow.group('Staff').to(['read'])]),
 });
 

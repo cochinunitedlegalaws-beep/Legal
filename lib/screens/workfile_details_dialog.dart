@@ -104,11 +104,26 @@ class _WorkfileDetailsDialogState extends State<WorkfileDetailsDialog> {
   @override
   Widget build(BuildContext context) {
     String workfileNo = '';
+    String year = '';
+    String court = '';
+    String clientStatus = '';
     if (widget.workfile['case_description'] != null) {
       try {
         final map = jsonDecode(widget.workfile['case_description']);
-        workfileNo = map['workfile_no'] ?? '';
+        workfileNo = map['workfile_no']?.toString() ?? '';
+        year = map['year']?.toString() ?? map['case_year']?.toString() ?? '';
+        court = map['court']?.toString() ?? map['court_name']?.toString() ?? '';
+        clientStatus = map['client_status']?.toString() ?? '';
       } catch (_) {}
+    }
+    if (year.isEmpty) {
+      year = (widget.workfile['year'] ?? widget.workfile['case_year'] ?? '').toString();
+    }
+    if (court.isEmpty) {
+      court = (widget.workfile['court_details'] ?? widget.workfile['court_name'] ?? widget.workfile['court'] ?? '').toString();
+    }
+    if (clientStatus.isEmpty) {
+      clientStatus = (widget.workfile['client_status'] ?? '').toString();
     }
 
     final title = widget.workfile['case_title'] ?? widget.workfile['title'] ?? 'Untitled Workfile';
@@ -316,8 +331,22 @@ class _WorkfileDetailsDialogState extends State<WorkfileDetailsDialog> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: _buildInfoCard(Icons.badge_outlined, 'Handled By', staff.isEmpty ? 'Unknown' : staff)),
+                        Expanded(child: _buildInfoCard(Icons.calendar_month_rounded, 'Filing Year', year.isNotEmpty ? year : 'N/A')),
                         const SizedBox(width: 16),
+                        Expanded(child: _buildInfoCard(Icons.account_balance_rounded, 'Court', court.isNotEmpty ? court : 'N/A')),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(child: _buildInfoCard(Icons.verified_user_outlined, 'Client Status', clientStatus.isNotEmpty ? clientStatus : status)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildInfoCard(Icons.badge_outlined, 'Handled By', staff.isEmpty ? 'Unknown' : staff)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
                         Expanded(child: _buildInfoCard(Icons.account_circle_outlined, 'Created By', widget.workfile['created_by'] ?? 'Unknown')),
                       ],
                     ),

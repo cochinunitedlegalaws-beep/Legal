@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../services/logging_service.dart';
 import '../services/user_service.dart';
 import '../widgets/responsive.dart';
+import '../utils/display_name_helper.dart';
 
 
 // Activity Log Model
@@ -202,11 +203,7 @@ class _AuditHistoryScreenState extends State<AuditHistoryScreen> {
 
       String formatName(String emailString) {
         if (!emailString.contains('@')) return emailString;
-        final namePart = emailString.split('@')[0];
-        String displayName = namePart.split('.').map((s) {
-          if (s.isEmpty) return s;
-          return "${s[0].toUpperCase()}${s.substring(1)}";
-        }).join(' ');
+        String displayName = DisplayNameHelper.fromEmail(emailString);
         if (!displayName.toLowerCase().startsWith('adv.')) {
           displayName = 'Adv. $displayName';
         }

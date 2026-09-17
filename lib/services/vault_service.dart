@@ -16,7 +16,6 @@ class VaultService {
   static Future<List<Map<String, dynamic>>> getFiles(String userEmail) async {
     List<Map<String, dynamic>> allFiles = [];
     try {
-      final tenantId = await _getTenantId();
       final request = ModelQueries.list(AmplifyModels.VaultFiles.classType);
       final response = await Amplify.API.query(request: request).response;
       
@@ -141,19 +140,18 @@ class VaultService {
       final getRes = await Amplify.API.query(request: getReq).response;
       final fileData = getRes.data;
 
-      if (fileData != null && fileData.storage_path != null) {
-        // Delete from AWS S3
-        await Amplify.Storage.remove(
-          path: StoragePath.fromString(fileData.storage_path!),
-        ).result;
-      }
+      if (fileData != null) {
+        if (fileData.storage_path != null) {
+          // Delete from AWS S3
+          await Amplify.Storage.remove(
+            path: StoragePath.fromString(fileData.storage_path!),
+          ).result;
+        }
 
-      // Delete from Amplify API
-      final delReq = ModelMutations.deleteById(
-        AmplifyModels.VaultFiles.classType, 
-        AmplifyModels.VaultFilesModelIdentifier(id: id)
-      );
-      await Amplify.API.mutate(request: delReq).response;
+        // Delete from Amplify API using the fetched model (includes _version)
+        final delReq = ModelMutations.delete(fileData);
+        await Amplify.API.mutate(request: delReq).response;
+      }
     } catch (e) {
       print('Error deleting vault file: $e');
     }
@@ -203,10 +201,8 @@ class VaultService {
           ).result;
         }
         
-        final delReq = ModelMutations.deleteById(
-          AmplifyModels.VaultFiles.classType, 
-          AmplifyModels.VaultFilesModelIdentifier(id: file.id)
-        );
+        // Delete using the full model (includes _version metadata)
+        final delReq = ModelMutations.delete(file);
         await Amplify.API.mutate(request: delReq).response;
       }
     } catch (e) {

@@ -63,6 +63,7 @@ flutter:
     - assets/seal.png
     - assets/dashboard_bg.png
     - assets/images/
+    - assets/cochin_united_import_data.json
 
   fonts:
     - family: Cinzel

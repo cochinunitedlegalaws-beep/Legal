@@ -12,6 +12,7 @@ import '../models/expense_model.dart';
 import 'client_files_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/role_service.dart';
+import '../widgets/excel_import_dialog.dart';
 
 class ClientManagementScreen extends StatefulWidget {
   const ClientManagementScreen({super.key});
@@ -60,7 +61,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
     }
   }
 
-  Future<void> _deleteClient(String id) async {
+  Future<void> _deleteClient(Client client) async {
     final confirmed = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.75),
@@ -108,9 +109,12 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
 
     if (confirmed == true) {
       try {
-        await ClientService.deleteClient(id);
+        await ClientService.deleteClient(client.id, name: client.name, email: client.email);
         setState(() {
-          _clients.removeWhere((c) => c.id == id);
+          _clients.removeWhere((c) =>
+            (client.id != null && c.id == client.id) ||
+            (client.name != null && c.name == client.name)
+          );
         });
         _showSuccess('Client deleted');
         
@@ -133,6 +137,13 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
       }
     } catch (e) {
       _showError('Export failed: $e');
+    }
+  }
+
+  Future<void> _openExcelImportDialog() async {
+    final updated = await ExcelImportDialog.show(context);
+    if (updated == true) {
+      _fetchClients();
     }
   }
 
@@ -172,6 +183,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
     final statusController = TextEditingController(text: client?.caseStatus ?? 'Active');
     final addressController = TextEditingController(text: client?.address);
     final careOfController = TextEditingController(text: client?.careOf);
+    final yearController = TextEditingController(text: client?.year ?? DateTime.now().year.toString());
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -336,11 +348,18 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                                 false,
                               ),
                               _buildFormField(
-                                courtController,
-                                'Court Name',
-                                Icons.account_balance_outlined,
+                                yearController,
+                                'Filing Year',
+                                Icons.calendar_month_outlined,
                                 false,
                               ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildFormField(
+                              courtController,
+                              'Court Name',
+                              Icons.account_balance_outlined,
+                              false,
                             ),
                             const SizedBox(height: 16),
                             responsiveRow(
@@ -393,6 +412,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                                     clientType: clientTypeController.text,
                                     typeOfWork: workController.text,
                                     caseNumber: caseController.text,
+                                    year: yearController.text.trim(),
                                     courtName: courtController.text,
                                     opposingParty: opposingPartyController.text,
                                     opposingCounsel: opposingCounselController.text,
@@ -410,6 +430,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                                       'client_type': newClient.clientType,
                                       'type_of_work': newClient.typeOfWork,
                                       'case_number': newClient.caseNumber,
+                                      'year': newClient.year,
                                       'court_name': newClient.courtName,
                                       'opposing_party': newClient.opposingParty,
                                       'opposing_counsel': newClient.opposingCounsel,
@@ -698,6 +719,13 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                           ),
                           const SizedBox(width: 8),
                           _headerAction(
+                            Icons.upload_file_rounded,
+                            'Import Excel',
+                            const Color(0xFFC5A059),
+                            _openExcelImportDialog,
+                          ),
+                          const SizedBox(width: 8),
+                          _headerAction(
                             Icons.download_rounded,
                             'Export to Excel',
                             const Color(0xFF0F172A),
@@ -792,6 +820,13 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                         'Refresh',
                         const Color(0xFF0F172A),
                         _fetchClients,
+                      ),
+                      const SizedBox(width: 8),
+                      _headerAction(
+                        Icons.upload_file_rounded,
+                        'Import',
+                        const Color(0xFFC5A059),
+                        _openExcelImportDialog,
                       ),
                       const SizedBox(width: 8),
                       _headerAction(
@@ -1166,7 +1201,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                       children: [
                         Expanded(child: _buildInfoItem(Icons.phone_outlined, c.phone?.isNotEmpty == true ? c.phone! : 'No Phone')),
                         Expanded(child: _buildInfoItem(Icons.email_outlined, c.email?.isNotEmpty == true ? c.email! : 'No Email')),
-                        Expanded(child: _buildInfoItem(Icons.gavel_outlined, 'Case: ${c.caseNumber?.isNotEmpty == true ? c.caseNumber! : 'N/A'}')),
+                        Expanded(child: _buildInfoItem(Icons.gavel_outlined, 'Case: ${c.caseNumber?.isNotEmpty == true ? c.caseNumber! : 'N/A'}${c.year?.isNotEmpty == true ? ' (${c.year})' : ''}')),
                         Expanded(child: _buildInfoItem(Icons.calendar_today_outlined, 'File Date: ${c.fileDate?.isNotEmpty == true ? c.fileDate! : 'N/A'}')),
                         Expanded(child: _buildInfoItem(Icons.account_balance_outlined, 'Court: ${c.courtName?.isNotEmpty == true ? c.courtName! : 'N/A'}')),
                       ],
@@ -1177,7 +1212,9 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                       children: [
                         _buildInfoItem(Icons.phone_outlined, c.phone?.isNotEmpty == true ? c.phone! : 'No Phone'),
                         _buildInfoItem(Icons.email_outlined, c.email?.isNotEmpty == true ? c.email! : 'No Email'),
-                        _buildInfoItem(Icons.gavel_outlined, 'Case: ${c.caseNumber?.isNotEmpty == true ? c.caseNumber! : 'N/A'}'),
+                        _buildInfoItem(Icons.gavel_outlined, 'Case: ${c.caseNumber?.isNotEmpty == true ? c.caseNumber! : 'N/A'}${c.year?.isNotEmpty == true ? ' (${c.year})' : ''}'),
+                        if (c.year?.isNotEmpty == true)
+                          _buildInfoItem(Icons.calendar_month_outlined, 'Year: ${c.year}'),
                         _buildInfoItem(Icons.calendar_today_outlined, 'File Date: ${c.fileDate?.isNotEmpty == true ? c.fileDate! : 'N/A'}'),
                         _buildInfoItem(Icons.account_balance_outlined, 'Court: ${c.courtName?.isNotEmpty == true ? c.courtName! : 'N/A'}'),
                         _buildInfoItem(Icons.location_on_outlined, c.address?.isNotEmpty == true ? c.address! : 'No Address'),
@@ -1246,7 +1283,7 @@ class _ClientManagementScreenState extends State<ClientManagementScreen> {
                 if (RoleService.canDeleteCases(_currentUserRole)) ...[
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
-                    onPressed: () => _deleteClient(c.id!),
+                    onPressed: () => _deleteClient(c),
                     icon: const Icon(Icons.delete_outline_rounded, size: 14),
                     label: const Text('Delete'),
                     style: OutlinedButton.styleFrom(

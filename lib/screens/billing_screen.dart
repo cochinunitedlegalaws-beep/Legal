@@ -13,11 +13,14 @@ import '../services/invoice_pdf_service.dart';
 import '../services/user_service.dart';
 import 'dart:convert';
 import '../utils/number_to_words.dart';
+import '../utils/display_name_helper.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/role_service.dart';
 import '../widgets/responsive.dart';
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 
 class BillingScreen extends StatefulWidget {
   final String? initialClientName;
@@ -491,7 +494,7 @@ class _BillingScreenState extends State<BillingScreen> {
   ));
 
   void _openCreator([Billing? b]) => Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => InvoiceCreatorPage(billing: b, onSaved: (int id) { _fetchBillings(refresh: true); Navigator.pop(context); }),
+    builder: (_) => InvoiceCreatorPage(billing: b, onSaved: (dynamic id) { _fetchBillings(refresh: true); Navigator.pop(context); }),
   ));
 
   @override
@@ -922,7 +925,7 @@ class _BillingScreenState extends State<BillingScreen> {
 // ─── PREMIUM INVOICE CREATOR PAGE ───
 class InvoiceCreatorPage extends StatefulWidget {
   final Billing? billing;
-  final void Function(int id)? onSaved;
+  final void Function(dynamic id)? onSaved;
   final String? initialClientName;
   final String? linkedCaseId;
 
@@ -1113,10 +1116,10 @@ class _InvoiceCreatorPageState extends State<InvoiceCreatorPage> {
   Future<void> _fetchStaffs() async {
     try {
       final users = await UserService.getAllUsers();
-      final List<String> fetchedStaffs = users.map((u) => u['name'].toString()).toList();
+      final List<String> fetchedStaffs = users.map((u) => DisplayNameHelper.overrideName(u['name'].toString())).toList();
       
       final prefs = await SharedPreferences.getInstance();
-      final currentUserName = prefs.getString('user_name') ?? '';
+      final currentUserName = DisplayNameHelper.overrideName(prefs.getString('user_name') ?? '');
 
       setState(() {
         _staffs = fetchedStaffs.map((name) {
@@ -1351,6 +1354,26 @@ class _InvoiceCreatorPageState extends State<InvoiceCreatorPage> {
   Future<void> _print() async {
     _calc();
     await InvoicePdfService.printInvoice(
+      type: _type, 
+      category: _category, 
+      clientName: _clientName.text, 
+      clientAddress: _clientAddress.text, 
+      date: _date.text, 
+      invoiceNo: _invoiceNo.text, 
+      authorities: _authorities, 
+      items: _items, 
+      totalAmount: _totalAmount, 
+      amountInWords: _amountInWords, 
+      outstandingAmount: _outstanding.text, 
+      advanceReceived: _advanceReceived.text,
+      grandTotal: _grandTotal,
+      balanceDue: _balanceDue,
+      quotationTerms: _quotationTerms,
+    );
+  }
+
+  Future<Uint8List> _generatePreviewPdf() async {
+    return await InvoicePdfService.generateInvoicePdf(
       type: _type, 
       category: _category, 
       clientName: _clientName.text, 
@@ -1627,9 +1650,72 @@ class _InvoiceCreatorPageState extends State<InvoiceCreatorPage> {
         );
 
         final previewPanel = Container(
-          color: AppTheme.secondaryColor, 
-          child: Center(
-            child: Text('Preview Panel', style: TextStyle(color: Colors.grey)),
+          color: const Color(0xFFF1F5F9),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.remove_red_eye_rounded, size: 18, color: Color(0xFFC5A059)),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Live Document Preview',
+                      style: TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        _type,
+                        style: const TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: PdfPreview(
+                      key: ValueKey('$_type-${_clientName.text}-${_invoiceNo.text}-$_totalAmount-$_date-${_items.length}-${_advanceReceived.text}-${_outstanding.text}'),
+                      build: (format) => _generatePreviewPdf(),
+                      canChangePageFormat: false,
+                      canChangeOrientation: false,
+                      canDebug: false,
+                      allowPrinting: true,
+                      allowSharing: true,
+                      initialPageFormat: PdfPageFormat.a4,
+                      pdfFileName: '${_invoiceNo.text.isNotEmpty ? _invoiceNo.text : 'Invoice'}.pdf',
+                      loadingWidget: const Center(
+                        child: CircularProgressIndicator(color: Color(0xFFC5A059)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
 

@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_api/amplify_api.dart';
 import '../models/Clients.dart' as AmplifyClients;
-import '../models/client.dart';
 
 class ClientService {
   static Future<String?> _getTenantId() async {
@@ -18,21 +17,22 @@ class ClientService {
       final items = response.data?.items ?? [];
       
       final amplifyResults = items.where((c) => c != null && c.name != null && c.name!.toLowerCase().contains(query.toLowerCase())).map((c) {
+        final Map<String, dynamic> decodedData = c!.data != null ? jsonDecode(c.data!) : {};
         return {
-          'id': c!.id,
+          ...decodedData,
+          'id': c.id,
           'name': c.name,
           'email': c.email,
           'phone': c.phone,
           'address': c.address,
           'type_of_work': c.type_of_work,
           'balance_due': c.balance_due,
-          'data': c.data != null ? jsonDecode(c.data!) : null,
         };
       }).toList();
       final tenantId = await _getTenantId();
       final filteredAmplify = amplifyResults.where((r) {
         if (r['name'] == 'Alexander Sterling' || r['name'] == 'Eleanor Vance') return false;
-        final t = r['data'] is Map ? r['data']['tenant_id'] : null;
+        final t = r['tenant_id'];
         return t == null || t == tenantId;
       }).toList();
       allResults.addAll(filteredAmplify);
@@ -44,7 +44,7 @@ class ClientService {
     
     final localResults = await _searchClientsLocal(query);
     for (var local in localResults) {
-      if (!allResults.any((r) => r['name'] == local['name'])) {
+      if (!allResults.any((r) => (local['id'] != null && r['id'] == local['id']) || r['name'] == local['name'])) {
         allResults.add(local);
       }
     }
@@ -61,6 +61,7 @@ class ClientService {
       final amplifyResults = items.where((c) => c != null).map((c) {
         final Map<String, dynamic> decodedData = c!.data != null ? jsonDecode(c.data!) : {};
         return {
+          ...decodedData,
           'id': c.id,
           'name': c.name,
           'email': c.email,
@@ -68,7 +69,6 @@ class ClientService {
           'address': c.address,
           'type_of_work': c.type_of_work,
           'balance_due': c.balance_due,
-          ...decodedData,
         };
       }).toList();
       
@@ -87,7 +87,10 @@ class ClientService {
     
     final localResults = await _getAllClientsLocal();
     for (var local in localResults) {
-      if (!allResults.any((r) => r['name'] == local['name'])) {
+      if (!allResults.any((r) => (local['id'] != null && r['id'] == local['id']) || r['name'] == local['name'])) {
+        if (local['id'] == null || local['id'].toString().isEmpty) {
+          local['id'] = UUID.getUUID();
+        }
         allResults.add(local);
       }
     }
@@ -95,9 +98,11 @@ class ClientService {
   }
 
   Future<Map<String, dynamic>?> addClient(String name, String email) async {
+    final newId = UUID.getUUID();
+    final tenantId = await _getTenantId();
     try {
-      final tenantId = await _getTenantId();
       final amplifyClient = AmplifyClients.Clients(
+        id: newId,
         name: name,
         email: email,
         data: jsonEncode({'tenant_id': tenantId}),
@@ -105,26 +110,27 @@ class ClientService {
       final request = ModelMutations.create(amplifyClient);
       final response = await Amplify.API.mutate(request: request).response;
       final c = response.data;
-      if (c == null) {
-        return await _addClientLocal({'name': name, 'email': email});
-      }
-      
-      await _addClientLocal({'name': name, 'email': email, 'tenant_id': tenantId});
+      final actualId = c?.id ?? newId;
+      await _addClientLocal({'id': actualId, 'name': name, 'email': email, 'tenant_id': tenantId});
       
       return {
-        'id': c.id,
-        'name': c.name,
-        'email': c.email,
+        'id': actualId,
+        'name': c?.name ?? name,
+        'email': c?.email ?? email,
       };
     } catch (e) {
-      return await _addClientLocal({'name': name, 'email': email});
+      return await _addClientLocal({'id': newId, 'name': name, 'email': email, 'tenant_id': tenantId});
     }
   }
 
   Future<Map<String, dynamic>?> addClientFull(Map<String, dynamic> clientData) async {
+    final newId = clientData['id']?.toString() ?? UUID.getUUID();
+    clientData['id'] = newId;
+    final tenantId = await _getTenantId();
+    clientData['tenant_id'] = tenantId;
     try {
-      clientData['tenant_id'] = await _getTenantId();
       final amplifyClient = AmplifyClients.Clients(
+        id: newId,
         name: clientData['name']?.toString(),
         email: clientData['email']?.toString(),
         phone: clientData['phone']?.toString(),
@@ -136,20 +142,18 @@ class ClientService {
       final request = ModelMutations.create(amplifyClient);
       final response = await Amplify.API.mutate(request: request).response;
       final c = response.data;
-      if (c == null) {
-        return await _addClientLocal(clientData);
-      }
-      
+      final actualId = c?.id ?? newId;
+      clientData['id'] = actualId;
       await _addClientLocal(clientData);
       
       return {
-        'id': c.id,
-        'name': c.name,
-        'email': c.email,
-        'phone': c.phone,
-        'address': c.address,
-        'type_of_work': c.type_of_work,
-        'balance_due': c.balance_due,
+        'id': actualId,
+        'name': c?.name ?? clientData['name'],
+        'email': c?.email ?? clientData['email'],
+        'phone': c?.phone ?? clientData['phone'],
+        'address': c?.address ?? clientData['address'],
+        'type_of_work': c?.type_of_work ?? clientData['type_of_work'],
+        'balance_due': c?.balance_due ?? clientData['balance_due'],
       };
     } catch (e) {
       return _addClientLocal(clientData);
@@ -162,10 +166,39 @@ class ClientService {
     if (clientsJson == null) return [];
     List<dynamic> list = jsonDecode(clientsJson);
     final tenantId = await _getTenantId();
-    return list.map((e) => Map<String, dynamic>.from(e)).where((c) {
-      if (c['name'] == 'Alexander Sterling' || c['name'] == 'Eleanor Vance') return false;
-      return c['tenant_id'] == tenantId;
-    }).toList();
+    bool needsSave = false;
+    final List<Map<String, dynamic>> parsed = [];
+    for (var e in list) {
+      final map = Map<String, dynamic>.from(e);
+      if (map['id'] == null || map['id'].toString().isEmpty) {
+        map['id'] = UUID.getUUID();
+        needsSave = true;
+      }
+      if (map['tenant_id'] == null) {
+        map['tenant_id'] = tenantId;
+        needsSave = true;
+      }
+      if (map['name'] == 'Alexander Sterling' || map['name'] == 'Eleanor Vance') {
+        continue;
+      }
+      if (map['tenant_id'] == tenantId) {
+        parsed.add(map);
+      }
+    }
+    if (needsSave) {
+      final updatedList = list.map((e) {
+        final map = Map<String, dynamic>.from(e);
+        if (map['id'] == null || map['id'].toString().isEmpty) {
+          map['id'] = UUID.getUUID();
+        }
+        if (map['tenant_id'] == null) {
+          map['tenant_id'] = tenantId;
+        }
+        return map;
+      }).toList();
+      await prefs.setString('local_clients', jsonEncode(updatedList));
+    }
+    return parsed;
   }
 
   Future<List<Map<String, dynamic>>> _searchClientsLocal(String query) async {
@@ -178,7 +211,18 @@ class ClientService {
     final prefs = await SharedPreferences.getInstance();
     final all = await _getAllClientsLocal();
     clientData['tenant_id'] = await _getTenantId();
-    all.add(clientData);
+    if (clientData['id'] == null || clientData['id'].toString().isEmpty) {
+      clientData['id'] = UUID.getUUID();
+    }
+    final existingIndex = all.indexWhere((c) =>
+      (clientData['id'] != null && c['id'] == clientData['id']) ||
+      (clientData['name'] != null && c['name'] == clientData['name'])
+    );
+    if (existingIndex >= 0) {
+      all[existingIndex] = clientData;
+    } else {
+      all.add(clientData);
+    }
     await prefs.setString('local_clients', jsonEncode(all));
     return clientData;
   }
@@ -203,42 +247,43 @@ class ClientService {
     }
   }
 
-  static Future<void> deleteClient(String id) async {
-    bool amplifySuccess = false;
-    try {
-      final request = ModelMutations.deleteById(
-        AmplifyClients.Clients.classType,
-        AmplifyClients.ClientsModelIdentifier(id: id),
-      );
-      final response = await Amplify.API.mutate(request: request).response;
-      if (response.hasErrors) {
-        throw Exception('GraphQL errors: ${response.errors}');
+  static Future<void> deleteClient(String? id, {String? name, String? email}) async {
+    if (id != null && id.isNotEmpty) {
+      try {
+        final getRequest = ModelQueries.get(
+          AmplifyClients.Clients.classType,
+          AmplifyClients.ClientsModelIdentifier(id: id),
+        );
+        final getResponse = await Amplify.API.query(request: getRequest).response;
+        final existingClient = getResponse.data;
+
+        if (existingClient != null) {
+          final deleteRequest = ModelMutations.delete(existingClient);
+          final deleteResponse = await Amplify.API.mutate(request: deleteRequest).response;
+          if (deleteResponse.hasErrors) {
+            print('GraphQL errors during delete: ${deleteResponse.errors}');
+          }
+        }
+      } catch (e) {
+        print('Error deleting client from Amplify: $e');
       }
-      amplifySuccess = true;
-    } catch (e) {
-      print('Error deleting client from Amplify: $e');
-      throw Exception('Amplify Error: $e');
     }
 
-    bool localSuccess = false;
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? clientsJson = prefs.getString('local_clients');
       if (clientsJson != null) {
         List<dynamic> list = jsonDecode(clientsJson);
-        final initialLength = list.length;
-        list.removeWhere((c) => c['id'] == id);
-        if (list.length < initialLength) {
-          await prefs.setString('local_clients', jsonEncode(list));
-          localSuccess = true;
-        }
+        list.removeWhere((c) {
+          if (id != null && id.isNotEmpty && c['id'] == id) return true;
+          if (name != null && name.isNotEmpty && c['name'] == name) return true;
+          if (email != null && email.isNotEmpty && c['email'] == email) return true;
+          return false;
+        });
+        await prefs.setString('local_clients', jsonEncode(list));
       }
     } catch (e) {
       print('Error deleting client from local: $e');
-    }
-
-    if (!amplifySuccess && !localSuccess) {
-      throw Exception('Failed to delete client');
     }
   }
 }

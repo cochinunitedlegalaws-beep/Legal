@@ -78,11 +78,18 @@ class CommunicationService {
 
   static Future<void> deleteLog(String id) async {
     try {
-      final request = ModelMutations.deleteById(
-        AmplifyModels.CommunicationLogs.classType, 
-        AmplifyModels.CommunicationLogsModelIdentifier(id: id)
+      // Fetch full model first to get _version metadata
+      final getRequest = ModelQueries.get(
+        AmplifyModels.CommunicationLogs.classType,
+        AmplifyModels.CommunicationLogsModelIdentifier(id: id),
       );
-      await Amplify.API.mutate(request: request).response;
+      final getResponse = await Amplify.API.query(request: getRequest).response;
+      final existingLog = getResponse.data;
+
+      if (existingLog != null) {
+        final deleteRequest = ModelMutations.delete(existingLog);
+        await Amplify.API.mutate(request: deleteRequest).response;
+      }
     } catch (e) {
       print('Deleting communication log locally: $e');
       final logs = await _getLocalLogs();

@@ -48,6 +48,7 @@ import '../services/approval_service.dart';
 import '../services/attendance_service.dart';
 import '../services/session_tracking_service.dart';
 import '../widgets/responsive.dart';
+import '../utils/display_name_helper.dart';
 
 class ManagerDashboard extends StatefulWidget {
   final String userEmail;
@@ -126,7 +127,7 @@ class _ManagerDashboardState extends State<ManagerDashboard> {
         final sessionStats = await SessionTrackingService.getStats(userEmail);
 
         updatedRoster.add({
-          'staffName': userEmail.split('@')[0],
+          'staffName': DisplayNameHelper.fromEmail(userEmail),
           'email': userEmail,
           'role': u['role'],
           'roleTitle': u['role'] == 'staff' ? 'Associate' : 'Senior',

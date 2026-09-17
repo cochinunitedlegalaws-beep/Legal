@@ -3,6 +3,7 @@ import 'package:amplify_api/amplify_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import '../models/ModelProvider.dart';
+import '../utils/display_name_helper.dart';
 
 class AuthService {
   /// Authenticate a user by email and password using Cognito
@@ -66,7 +67,7 @@ class AuthService {
            id = user.id;
         }
 
-        await prefs.setString('user_name', name);
+        await prefs.setString('user_name', DisplayNameHelper.overrideName(name));
         int? intId = int.tryParse(id);
         if (intId != null) {
           await prefs.setInt('current_user_id', intId);

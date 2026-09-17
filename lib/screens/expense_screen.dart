@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../utils/display_name_helper.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,7 +43,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> with SingleTickerProvider
 
   Future<void> _loadUserAndData() async {
     final prefs = await SharedPreferences.getInstance();
-    _currentUserName = prefs.getString('user_name') ?? prefs.getString('user_email') ?? 'User';
+    _currentUserName = DisplayNameHelper.overrideName(prefs.getString('user_name') ?? prefs.getString('user_email') ?? 'User');
     await _fetchTransactions();
   }
 

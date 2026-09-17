@@ -207,11 +207,24 @@ class BillingService {
 
   Future<void> deleteBilling(String id) async {
     try {
-      final amplifyBilling = AmplifyBillings.Billings(id: id);
-      final request = ModelMutations.delete(amplifyBilling);
-      await Amplify.API.mutate(request: request).response;
+      final getResponse = await Amplify.API.query(
+        request: ModelQueries.get(AmplifyBillings.Billings.classType, AmplifyBillings.BillingsModelIdentifier(id: id))
+      ).response;
+      
+      final existingModel = getResponse.data;
+      if (existingModel != null) {
+        final request = ModelMutations.delete(existingModel);
+        final response = await Amplify.API.mutate(request: request).response;
+        if (response.hasErrors) {
+          print('GraphQL Errors deleting billing: ${response.errors}');
+          throw Exception(response.errors.first.message);
+        }
+      } else {
+        throw Exception('Invoice not found on server');
+      }
     } catch (e) {
       print('Error deleting billing: $e');
+      rethrow;
     }
   }
 

@@ -103,11 +103,18 @@ class LeadService {
 
   static Future<void> deleteLead(String id) async {
     try {
-      final request = ModelMutations.deleteById(
+      // Fetch full model first to get _version metadata
+      final getRequest = ModelQueries.get(
         AmplifyModels.Leads.classType,
-        AmplifyModels.LeadsModelIdentifier(id: id)
+        AmplifyModels.LeadsModelIdentifier(id: id),
       );
-      await Amplify.API.mutate(request: request).response;
+      final getResponse = await Amplify.API.query(request: getRequest).response;
+      final existingLead = getResponse.data;
+
+      if (existingLead != null) {
+        final deleteRequest = ModelMutations.delete(existingLead);
+        await Amplify.API.mutate(request: deleteRequest).response;
+      }
     } catch (e) {
       print('Deleting lead locally: $e');
       final leads = await _getLocalLeads();

@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../services/case_service.dart';
+import '../utils/display_name_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CaseManagementScreen extends StatefulWidget {
@@ -1022,12 +1023,7 @@ class _CaseManagementScreenState extends State<CaseManagementScreen> {
     final timestamp = entry['timestamp']?.toString();
     String updatedBy = entry['updated_by']?.toString() ?? 'Staff';
     if (updatedBy.contains('@')) {
-      final usernamePart = updatedBy.split('@')[0];
-      final parts = usernamePart.split(RegExp(r'[._\-]'));
-      updatedBy = parts
-          .where((p) => p.isNotEmpty)
-          .map((p) => p[0].toUpperCase() + p.substring(1))
-          .join(' ');
+      updatedBy = DisplayNameHelper.fromEmail(updatedBy);
     } else if (updatedBy.isNotEmpty && updatedBy != 'Staff' && updatedBy != 'System') {
       final parts = updatedBy.split(RegExp(r'[._\-]'));
       updatedBy = parts

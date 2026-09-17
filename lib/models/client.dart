@@ -18,6 +18,7 @@ class Client {
   final String? nextHearingDate;
   final String? clientType;
   final String? careOf;
+  final String? year;
 
   Client({
     this.id,
@@ -39,6 +40,7 @@ class Client {
     this.nextHearingDate,
     this.clientType,
     this.careOf,
+    this.year,
   });
 
   Client copyWith({
@@ -61,6 +63,7 @@ class Client {
     String? nextHearingDate,
     String? clientType,
     String? careOf,
+    String? year,
   }) {
     return Client(
       id: id ?? this.id,
@@ -82,6 +85,7 @@ class Client {
       nextHearingDate: nextHearingDate ?? this.nextHearingDate,
       clientType: clientType ?? this.clientType,
       careOf: careOf ?? this.careOf,
+      year: year ?? this.year,
     );
   }
 
@@ -110,6 +114,7 @@ class Client {
       nextHearingDate: map['nextHearingDate'] ?? map['next_hearing_date'],
       clientType: map['clientType'] ?? map['client_type'],
       careOf: map['careOf'] ?? map['care_of'],
+      year: (map['year'] ?? map['case_year'])?.toString(),
     );
   }
 
@@ -134,6 +139,7 @@ class Client {
       'nextHearingDate': nextHearingDate,
       'clientType': clientType,
       'careOf': careOf,
+      if (year != null) 'year': year,
     };
   }
 }

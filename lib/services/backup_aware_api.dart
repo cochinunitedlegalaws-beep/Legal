@@ -37,11 +37,25 @@ class BackupAwareApi {
   }
 
   /// Delete a record by ID from DynamoDB.
+  /// Fetches the full model first to include _version metadata for conflict resolution.
   Future<GraphQLResponse<T>> deleteById<T extends Model>(ModelType<T> classType, ModelIdentifier<T> id) async {
+    // Fetch the full model first to get _version metadata
+    final getResponse = await Amplify.API
+        .query(request: ModelQueries.get(classType, id))
+        .response;
+    final existingModel = getResponse.data;
+
+    if (existingModel != null) {
+      final response = await Amplify.API
+          .mutate(request: ModelMutations.delete(existingModel))
+          .response;
+      return response;
+    }
+
+    // If the model doesn't exist, use deleteById as fallback
     final response = await Amplify.API
         .mutate(request: ModelMutations.deleteById(classType, id))
         .response;
-
     return response;
   }
 }

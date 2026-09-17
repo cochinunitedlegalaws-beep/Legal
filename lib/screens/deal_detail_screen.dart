@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../utils/display_name_helper.dart';
 import 'package:flutter/material.dart';
 import '../models/deal.dart';
 import '../models/billing.dart';
@@ -188,7 +189,7 @@ class _DealDetailScreenState extends State<DealDetailScreen>
     if (mounted) {
       setState(() {
         _currentUserId = prefs.getInt('current_user_id');
-        _currentUserName = prefs.getString('user_name');
+        _currentUserName = DisplayNameHelper.overrideName(prefs.getString('user_name') ?? '');
       });
     }
   }

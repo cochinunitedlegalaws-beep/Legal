@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../utils/display_name_helper.dart';
 import 'billing_screen.dart';
 import 'expense_screen.dart';
 import 'workfile_wizard_screen.dart';
@@ -1334,7 +1335,7 @@ class _StaffDashboardState extends State<StaffDashboard> with WidgetsBindingObse
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome, ${widget.userEmail.split('@')[0].toUpperCase()}!',
+                  'Welcome, ${DisplayNameHelper.fromEmail(widget.userEmail).toUpperCase()}!',
                   style: const TextStyle(fontFamily: 'Montserrat', fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                 ),
                 const SizedBox(height: 4),
@@ -1944,8 +1945,7 @@ class _StaffDashboardState extends State<StaffDashboard> with WidgetsBindingObse
     // Extract username from email
     String displayName = 'Chamber Staff';
     if (widget.userEmail.contains('@')) {
-      final namePart = widget.userEmail.split('@')[0];
-      displayName = namePart.split('.').map((s) => s.capitalize()).join(' ');
+      displayName = DisplayNameHelper.fromEmail(widget.userEmail);
       if (!displayName.startsWith('Adv.')) {
         displayName = 'Adv. $displayName';
       }

@@ -6,6 +6,7 @@ import '../services/case_service.dart';
 import 'workfile_wizard_screen.dart';
 import 'workfile_details_dialog.dart';
 import '../widgets/responsive.dart';
+import '../widgets/excel_import_dialog.dart';
 
 class WorkfileScreen extends StatefulWidget {
   const WorkfileScreen({super.key});
@@ -73,14 +74,18 @@ class _WorkfileScreenState extends State<WorkfileScreen> {
         final client = (w['client_name'] ?? '').toString().toLowerCase();
         final caseType = (w['case_type'] ?? '').toString().toLowerCase();
         String workfileNo = '';
+        String year = (w['year'] ?? w['case_year'] ?? '').toString().toLowerCase();
+        String court = (w['court_details'] ?? w['court_name'] ?? w['court'] ?? '').toString().toLowerCase();
         if (w['case_description'] != null) {
           try {
             final map = jsonDecode(w['case_description']);
             workfileNo = (map['workfile_no'] ?? '').toString().toLowerCase();
+            if (year.isEmpty) year = (map['year'] ?? map['case_year'] ?? '').toString().toLowerCase();
+            if (court.isEmpty) court = (map['court'] ?? map['court_name'] ?? '').toString().toLowerCase();
           } catch (_) {}
         }
         final q = _searchQuery.toLowerCase();
-        return title.contains(q) || client.contains(q) || caseType.contains(q) || workfileNo.contains(q);
+        return title.contains(q) || client.contains(q) || caseType.contains(q) || workfileNo.contains(q) || year.contains(q) || court.contains(q);
       }
       return true;
     }).toList();
@@ -145,9 +150,12 @@ class _WorkfileScreenState extends State<WorkfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: _buildNewWorkfileButton(),
+                  Row(
+                    children: [
+                      _buildImportButton(),
+                      const SizedBox(width: 10),
+                      _buildNewWorkfileButton(),
+                    ],
                   ),
                 ],
               )
@@ -156,6 +164,8 @@ class _WorkfileScreenState extends State<WorkfileScreen> {
                   _buildBackButton(),
                   const SizedBox(width: 18),
                   Expanded(child: _buildHeaderTitleText(isNarrow: false)),
+                  _buildImportButton(),
+                  const SizedBox(width: 10),
                   _buildNewWorkfileButton(),
                 ],
               ),
@@ -232,6 +242,41 @@ class _WorkfileScreenState extends State<WorkfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildImportButton() {
+    return _HoverableButton(
+      onTap: _openExcelImport,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          color: const Color(0xFFC5A059),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFC5A059).withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.upload_file_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              'Import Excel',
+              style: GoogleFonts.montserrat(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -456,6 +501,13 @@ class _WorkfileScreenState extends State<WorkfileScreen> {
     _fetchWorkfiles();
   }
 
+  void _openExcelImport() async {
+    final updated = await ExcelImportDialog.show(context);
+    if (updated == true) {
+      _fetchWorkfiles();
+    }
+  }
+
   Widget _buildEmptyState() {
     final hasFilters = _searchQuery.isNotEmpty || _selectedFilter != 'All';
     String emptyTitle = 'No Workfiles Found';
@@ -587,11 +639,26 @@ class _WorkfileCardItemState extends State<_WorkfileCardItem> {
   @override
   Widget build(BuildContext context) {
     String workfileNo = '';
+    String year = '';
+    String court = '';
+    String clientStatus = '';
     if (widget.workfile['case_description'] != null) {
       try {
         final map = jsonDecode(widget.workfile['case_description']);
-        workfileNo = map['workfile_no'] ?? '';
+        workfileNo = map['workfile_no']?.toString() ?? '';
+        year = map['year']?.toString() ?? map['case_year']?.toString() ?? '';
+        court = map['court']?.toString() ?? map['court_name']?.toString() ?? '';
+        clientStatus = map['client_status']?.toString() ?? '';
       } catch (_) {}
+    }
+    if (year.isEmpty) {
+      year = (widget.workfile['year'] ?? widget.workfile['case_year'] ?? '').toString();
+    }
+    if (court.isEmpty) {
+      court = (widget.workfile['court_details'] ?? widget.workfile['court_name'] ?? widget.workfile['court'] ?? '').toString();
+    }
+    if (clientStatus.isEmpty) {
+      clientStatus = (widget.workfile['client_status'] ?? '').toString();
     }
 
     final title = widget.workfile['case_title'] ?? widget.workfile['title'] ?? 'Untitled Workfile';
@@ -713,6 +780,12 @@ class _WorkfileCardItemState extends State<_WorkfileCardItem> {
                           _buildDetailChip(Icons.person_outline_rounded, clientName),
                         if (caseType.isNotEmpty)
                           _buildDetailChip(Icons.gavel_rounded, caseType),
+                        if (year.isNotEmpty)
+                          _buildDetailChip(Icons.calendar_month_rounded, 'Year: $year'),
+                        if (court.isNotEmpty)
+                          _buildDetailChip(Icons.account_balance_rounded, court),
+                        if (clientStatus.isNotEmpty)
+                          _buildDetailChip(Icons.verified_user_outlined, 'Status: $clientStatus'),
                         if (dateLabel.isNotEmpty)
                           _buildDetailChip(Icons.calendar_today_rounded, dateLabel),
                       ],

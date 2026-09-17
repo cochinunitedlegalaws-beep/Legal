@@ -83,11 +83,18 @@ class DocumentService {
   /// Delete a document by ID.
   static Future<void> deleteDocument(String id) async {
     try {
-      final request = ModelMutations.deleteById(
+      // Fetch full model first to get _version metadata
+      final getRequest = ModelQueries.get(
         AmplifyModels.ChamberDocuments.classType,
-        AmplifyModels.ChamberDocumentsModelIdentifier(id: id)
+        AmplifyModels.ChamberDocumentsModelIdentifier(id: id),
       );
-      await Amplify.API.mutate(request: request).response;
+      final getResponse = await Amplify.API.query(request: getRequest).response;
+      final existingDoc = getResponse.data;
+
+      if (existingDoc != null) {
+        final deleteRequest = ModelMutations.delete(existingDoc);
+        await Amplify.API.mutate(request: deleteRequest).response;
+      }
     } catch (e) {
       print('Error deleting document: $e');
     }

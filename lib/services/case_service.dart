@@ -165,13 +165,20 @@ class CaseService {
   /// Delete a case
   static Future<void> deleteCase(String id) async {
     try {
-      final request = ModelMutations.deleteById(
+      // Fetch full model first to get _version metadata
+      final getRequest = ModelQueries.get(
         Cases.classType,
         CasesModelIdentifier(id: id),
       );
-      final response = await Amplify.API.mutate(request: request).response;
-      if (response.hasErrors) {
-        throw Exception('GraphQL errors: ${response.errors}');
+      final getResponse = await Amplify.API.query(request: getRequest).response;
+      final existingCase = getResponse.data;
+
+      if (existingCase != null) {
+        final deleteRequest = ModelMutations.delete(existingCase);
+        final response = await Amplify.API.mutate(request: deleteRequest).response;
+        if (response.hasErrors) {
+          throw Exception('GraphQL errors: ${response.errors}');
+        }
       }
     } catch (e) {
       print('Error deleting case: $e');

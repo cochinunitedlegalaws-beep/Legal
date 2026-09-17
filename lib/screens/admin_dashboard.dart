@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
+import '../utils/display_name_helper.dart';
 import '../theme/app_theme.dart';
 import '../widgets/case_stages_widget.dart';
 import '../widgets/task_management_widget.dart';
@@ -215,7 +216,7 @@ class _AdminDashboardState extends State<AdminDashboard> with WidgetsBindingObse
         return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}";
       }
       parsedLogs.add(SessionAuditLog(
-        userName: email.split('@')[0],
+        userName: DisplayNameHelper.fromEmail(email),
         role: firstLog['user_role'] ?? 'Staff',
         roleTitle: 'Firm User',
         location: 'Remote Access',
@@ -3888,10 +3889,7 @@ class _AdminDashboardState extends State<AdminDashboard> with WidgetsBindingObse
     }
     String nameFromEmail(String email) {
       if (!email.contains('@')) return email;
-      return email.split('@')[0].split('.').map((s) {
-        if (s.isEmpty) return s;
-        return '${s[0].toUpperCase()}${s.substring(1)}';
-      }).join(' ');
+      return DisplayNameHelper.fromEmail(email);
     }
     return LayoutBuilder(
       builder: (context, constraints) {

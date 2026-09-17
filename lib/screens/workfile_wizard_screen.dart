@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../utils/display_name_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -26,6 +27,10 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
   final _caseTypeController = TextEditingController(text: 'Civil');
   final _customCaseTypeController = TextEditingController();
   String _selectedCaseTypeDropdown = 'Civil';
+  final _yearController = TextEditingController(text: DateTime.now().year.toString());
+  final _courtController = TextEditingController();
+  final _clientStatusController = TextEditingController(text: 'Active');
+  String _selectedClientStatus = 'Active';
 
   List<Map<String, dynamic>> _clients = [];
   Map<String, dynamic>? _selectedClient;
@@ -51,6 +56,9 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
     _caseNameController.dispose();
     _caseTypeController.dispose();
     _customCaseTypeController.dispose();
+    _yearController.dispose();
+    _courtController.dispose();
+    _clientStatusController.dispose();
     super.dispose();
   }
 
@@ -60,7 +68,7 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final email = prefs.getString('user_email') ?? '';
-      final name = prefs.getString('user_name') ?? '';
+      final name = DisplayNameHelper.overrideName(prefs.getString('user_name') ?? '');
       if (mounted) {
         setState(() {
           _loggedInStaffName = name.isNotEmpty ? name : email;
@@ -161,17 +169,34 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
 
       final caseIdStr = _fileNoController.text.trim();
       final creatorName = await AuthService().getUserName();
+      final yearStr = _yearController.text.trim().isEmpty ? DateTime.now().year.toString() : _yearController.text.trim();
+      final courtStr = _courtController.text.trim();
+      final clientStatus = _selectedClientStatus == 'Other'
+          ? (_clientStatusController.text.trim().isEmpty ? 'Active' : _clientStatusController.text.trim())
+          : _selectedClientStatus;
+
       final caseData = {
         'case_title': _caseNameController.text.trim(),
         'client_name': _selectedClient!['name'] ?? '',
         'case_type': _caseTypeController.text.trim().isEmpty ? 'General' : _caseTypeController.text.trim(),
         'case_status': 'Open',
+        'status': 'Open',
         'court_case_number': caseIdStr,
+        'court_details': courtStr,
+        'court_name': courtStr,
+        'court': courtStr,
         'responsible_staff': _selectedStaffEmails,
         'created_by': (creatorName != null && creatorName.isNotEmpty) ? creatorName : 'System',
+        'year': yearStr,
+        'case_year': yearStr,
+        'client_status': clientStatus,
         'case_description': jsonEncode({
           'client_email': clientEmail,
           'workfile_no': caseIdStr,
+          'year': yearStr,
+          'court': courtStr,
+          'court_name': courtStr,
+          'client_status': clientStatus,
           'vault_documents': uploadedDocsData,
         }),
       };
@@ -294,36 +319,48 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
                   Row(
                     children: [
                       Expanded(
+                        flex: 2,
                         child: _buildFormField(_fileNoController, 'File / Case No. *', Icons.tag_rounded, hint: 'e.g. CU-WF-2026-001'),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
-                        flex: 2,
-                        child: _buildFormField(_caseNameController, 'Case Title *', Icons.title_rounded, hint: 'e.g. Property Registration & Deed'),
+                        child: _buildFormField(_yearController, 'Filing Year *', Icons.calendar_month_rounded, hint: 'e.g. ${DateTime.now().year}'),
                       ),
                     ],
                   ),
                   const SizedBox(height: 14),
+                  _buildFormField(_caseNameController, 'Case Title *', Icons.title_rounded, hint: 'e.g. Property Registration & Deed'),
+                  const SizedBox(height: 14),
 
-                  // Case Type Selection
-                  _buildDropdownField<String>(
-                    value: _selectedCaseTypeDropdown,
-                    label: 'Case Type',
-                    icon: Icons.category_rounded,
-                    items: ['Civil', 'Criminal', 'Corporate', 'Family', 'Property', 'Tax', 'Agreement', 'General', 'Other']
-                        .map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedCaseTypeDropdown = val;
-                          if (val == 'Other') {
-                            _caseTypeController.text = _customCaseTypeController.text.trim().isEmpty ? 'Other' : _customCaseTypeController.text.trim();
-                          } else {
-                            _caseTypeController.text = val;
-                          }
-                        });
-                      }
-                    },
+                  // Case Type & Court Selection
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildDropdownField<String>(
+                          value: _selectedCaseTypeDropdown,
+                          label: 'Case Type',
+                          icon: Icons.category_rounded,
+                          items: ['Civil', 'Criminal', 'Corporate', 'Family', 'Property', 'Tax', 'Agreement', 'General', 'Other']
+                              .map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _selectedCaseTypeDropdown = val;
+                                if (val == 'Other') {
+                                  _caseTypeController.text = _customCaseTypeController.text.trim().isEmpty ? 'Other' : _customCaseTypeController.text.trim();
+                                } else {
+                                  _caseTypeController.text = val;
+                                }
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: _buildFormField(_courtController, 'Court Name', Icons.account_balance_rounded, hint: 'e.g. High Court, District Court'),
+                      ),
+                    ],
                   ),
                   if (_selectedCaseTypeDropdown == 'Other') ...[
                     const SizedBox(height: 12),
@@ -368,7 +405,7 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
                   _isLoadingClients
                       ? const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0F172A))))
                       : DropdownButtonFormField<Map<String, dynamic>>(
-                          value: _selectedClient,
+                          initialValue: _selectedClient,
                           dropdownColor: Colors.white,
                           style: const TextStyle(color: Color(0xFF0F172A), fontFamily: 'Montserrat', fontSize: 13.5),
                           decoration: InputDecoration(
@@ -392,10 +429,65 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
                           onChanged: (val) {
                             setState(() {
                               _selectedClient = val;
+                              if (val != null) {
+                                final cStatus = val['client_status'] ?? val['case_status'];
+                                if (cStatus != null && cStatus.toString().isNotEmpty) {
+                                  final st = cStatus.toString();
+                                  if (['Active', 'Pending', 'In Consultation', 'Retained', 'Notice Issued', 'Disposed', 'Closed'].contains(st)) {
+                                    _selectedClientStatus = st;
+                                  } else {
+                                    _selectedClientStatus = 'Other';
+                                    _clientStatusController.text = st;
+                                  }
+                                }
+                                final cCourt = val['court_name'] ?? val['court_details'] ?? val['court'];
+                                if (cCourt != null && cCourt.toString().isNotEmpty && _courtController.text.isEmpty) {
+                                  _courtController.text = cCourt.toString();
+                                }
+                                final cYear = val['year'] ?? val['case_year'];
+                                if (cYear != null && cYear.toString().isNotEmpty) {
+                                  _yearController.text = cYear.toString();
+                                }
+                              }
                             });
                             _loadClientVaultFiles();
                           },
                         ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildDropdownField<String>(
+                          value: _selectedClientStatus,
+                          label: 'Client Status',
+                          icon: Icons.verified_user_outlined,
+                          items: ['Active', 'Pending', 'In Consultation', 'Retained', 'Notice Issued', 'Disposed', 'Closed', 'Other']
+                              .map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _selectedClientStatus = val;
+                                if (val != 'Other') {
+                                  _clientStatusController.text = val;
+                                }
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      if (_selectedClientStatus == 'Other') ...[
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: _buildFormField(
+                            _clientStatusController,
+                            'Specify Client Status',
+                            Icons.edit_note_rounded,
+                            hint: 'e.g. Under Review',
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 24),
 
                   // SECTION 3: Staff Assignment (Auto-assigned to logged-in user)
@@ -620,6 +712,7 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
     final caseNoCtrl = TextEditingController();
     final courtCtrl = TextEditingController();
     final statusCtrl = TextEditingController(text: 'Active');
+    final yearCtrl = TextEditingController(text: DateTime.now().year.toString());
     bool isSaving = false;
 
     showDialog(
@@ -712,6 +805,31 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _buildFormField(caseNoCtrl, 'Case / Filing No.', Icons.gavel_rounded)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildFormField(yearCtrl, 'Filing Year *', Icons.calendar_month_rounded, hint: 'e.g. ${DateTime.now().year}')),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _buildFormField(courtCtrl, 'Court Name', Icons.account_balance_rounded, hint: 'e.g. High Court')),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildDropdownField<String>(
+                          value: statusCtrl.text,
+                          label: 'Client Status',
+                          icon: Icons.verified_user_outlined,
+                          items: ['Active', 'Pending', 'In Consultation', 'Retained', 'Notice Issued', 'Disposed', 'Closed']
+                              .map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                          onChanged: (val) { if (val != null) statusCtrl.text = val; },
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -739,9 +857,12 @@ class _WorkfileWizardScreenState extends State<WorkfileWizardScreen> {
                                     'phone': phoneCtrl.text.trim(),
                                     'client_type': clientTypeCtrl.text.trim().isEmpty ? 'Individual' : clientTypeCtrl.text.trim(),
                                     'type_of_work': workCtrl.text.trim().isEmpty ? 'Civil' : workCtrl.text.trim(),
+                                    'year': yearCtrl.text.trim().isEmpty ? DateTime.now().year.toString() : yearCtrl.text.trim(),
+                                    'case_year': yearCtrl.text.trim().isEmpty ? DateTime.now().year.toString() : yearCtrl.text.trim(),
                                     'case_number': caseNoCtrl.text.trim(),
                                     'court_name': courtCtrl.text.trim(),
                                     'case_status': statusCtrl.text.trim().isEmpty ? 'Active' : statusCtrl.text.trim(),
+                                    'client_status': statusCtrl.text.trim().isEmpty ? 'Active' : statusCtrl.text.trim(),
                                   };
                                   final newClient = await ClientService().addClientFull(clientData);
                                   if (dialogCtx.mounted) {
