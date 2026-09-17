@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_api/amplify_api.dart';
 import '../models/Users.dart' as AmplifyUsers;
+import '../utils/display_name_helper.dart';
 
 class UserService {
   static bool _hasAttemptedSeeding = false;
@@ -18,6 +19,7 @@ class UserService {
         if (e!.data != null) {
           final json = jsonDecode(e.data!);
           json['id'] = e.id;
+          json['name'] = DisplayNameHelper.overrideName(json['name']?.toString() ?? '');
           return json;
         } else {
           final data = jsonDecode(e.data ?? '{}');
@@ -26,7 +28,7 @@ class UserService {
             'id': e.id,
             'email': e.email,
             'role': e.role,
-            'name': e.name,
+            'name': DisplayNameHelper.overrideName(e.name ?? ''),
             'phone': phone,
             'username': e.username ?? data['username'],
             'is_active': true,

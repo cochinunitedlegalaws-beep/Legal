@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../services/case_service.dart';
 import '../services/user_service.dart';
+import '../utils/display_name_helper.dart';
 import 'case_management_screen.dart';
 
 class CaseListScreen extends StatefulWidget {
@@ -127,7 +128,7 @@ class _CaseListScreenState extends State<CaseListScreen> {
       formattedNames.add(clean);
     }
 
-    return formattedNames.isNotEmpty ? formattedNames.join(', ') : 'Unassigned';
+    return DisplayNameHelper.overrideName(formattedNames.isNotEmpty ? formattedNames.join(', ') : 'Unassigned');
   }
 
   List<Map<String, dynamic>> get _filteredCases {
@@ -836,7 +837,7 @@ class _CaseListScreenState extends State<CaseListScreen> {
                       const Icon(Icons.person_outline_rounded, size: 13, color: Color(0xFF0F172A)),
                       const SizedBox(width: 4),
                       Text(
-                        'Handling: $handlerDisplay',
+                        'Care Of: $handlerDisplay',
                         style: const TextStyle(
                           fontFamily: 'Montserrat',
                           fontSize: 11,

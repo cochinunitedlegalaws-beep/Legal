@@ -32,6 +32,8 @@ class _CaseManagementScreenState extends State<CaseManagementScreen> {
   final _caseTypeController = TextEditingController();
   final _feeController = TextEditingController();
   final _judgeNameController = TextEditingController();
+  final _careOfController = TextEditingController();
+  final _handlingController = TextEditingController();
 
   // Pending Update Log Form State
   final _stageInputController = TextEditingController(text: 'Doc Collection');
@@ -83,6 +85,8 @@ class _CaseManagementScreenState extends State<CaseManagementScreen> {
     _caseTypeController.dispose();
     _feeController.dispose();
     _judgeNameController.dispose();
+    _careOfController.dispose();
+    _handlingController.dispose();
     _stageInputController.dispose();
     _proceedingsInputController.dispose();
     _disposalNotesController.dispose();
@@ -112,6 +116,8 @@ class _CaseManagementScreenState extends State<CaseManagementScreen> {
       _caseTypeController.text = data['case_type'] ?? '';
       _feeController.text = data['total_fees'] ?? data['fee'] ?? '';
       _judgeNameController.text = data['judge_name'] ?? '';
+      _careOfController.text = data['assigned_counsel'] ?? data['responsible_staff'] ?? data['created_by'] ?? data['lawyer_name'] ?? '';
+      _handlingController.text = data['handling_lawyer'] ?? data['handling_staff'] ?? '';
       if (data['current_stage'] != null && data['current_stage'].toString().trim().isNotEmpty) {
         _stageInputController.text = data['current_stage'].toString();
       }
@@ -353,6 +359,8 @@ class _CaseManagementScreenState extends State<CaseManagementScreen> {
         'case_type': _caseTypeController.text.trim(),
         'total_fees': _feeController.text.trim(),
         'judge_name': _judgeNameController.text.trim(),
+        'assigned_counsel': _careOfController.text.trim(),
+        'handling_lawyer': _handlingController.text.trim(),
         'current_stage': currentStageName,
         'next_hearing_date': _selectedNextHearingDate?.toIso8601String(),
         'flow_history': jsonEncode(_caseFlowHistory),
@@ -648,6 +656,14 @@ class _CaseManagementScreenState extends State<CaseManagementScreen> {
                       Expanded(child: _buildCompactInput(_caseTypeController, 'Case Type / Category', Icons.category)),
                       const SizedBox(width: 14),
                       Expanded(child: _buildCompactInput(_feeController, 'Total Agreed Fee (₹)', Icons.currency_rupee)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _buildCompactInput(_careOfController, 'Care Of', Icons.person)),
+                      const SizedBox(width: 14),
+                      Expanded(child: _buildCompactInput(_handlingController, 'Handling', Icons.work_outline)),
                     ],
                   ),
                 ],

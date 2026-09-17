@@ -8,6 +8,8 @@ import '../services/auth_service.dart';
 import '../services/case_service.dart';
 import 'task_detail_screen.dart';
 import '../services/user_service.dart';
+import '../utils/display_name_helper.dart';
+import '../widgets/responsive.dart';
 
 class TaskManagementScreen extends StatefulWidget {
   final String? initialStatus;
@@ -375,13 +377,13 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> with Ticker
   }
 
   String _getStaffName(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return 'Unassigned';
+    if (raw == null || raw.trim().isEmpty) return DisplayNameHelper.overrideName('Unassigned');
     String clean = raw.trim().replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll("'", '');
     final cleanLower = clean.toLowerCase();
-    if (_staffMap.containsKey(cleanLower)) return _staffMap[cleanLower]!;
+    if (_staffMap.containsKey(cleanLower)) return DisplayNameHelper.overrideName(_staffMap[cleanLower]!);
     if (cleanLower.contains('@')) {
       final prefix = cleanLower.split('@')[0];
-      if (_staffMap.containsKey(prefix)) return _staffMap[prefix]!;
+      if (_staffMap.containsKey(prefix)) return DisplayNameHelper.overrideName(_staffMap[prefix]!);
       final parts = prefix.split(RegExp(r'[._\-]'));
       return parts.where((p) => p.isNotEmpty).map((p) => p[0].toUpperCase() + p.substring(1)).join(' ');
     }

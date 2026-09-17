@@ -8,6 +8,8 @@ import '../services/case_service.dart';
 import '../services/meeting_service.dart';
 import '../services/client_service.dart';
 import '../services/task_service.dart';
+import '../models/task_model.dart';
+import '../utils/display_name_helper.dart';
 import '../services/user_service.dart';
 import '../widgets/responsive.dart';
 
@@ -157,7 +159,7 @@ class _CaseCalendarScreenState extends State<CaseCalendarScreen> {
       formattedNames.add(clean);
     }
 
-    return formattedNames.isEmpty ? 'Unassigned' : formattedNames.join(', ');
+    return DisplayNameHelper.overrideName(formattedNames.isNotEmpty ? formattedNames.join(', ') : 'Unassigned');
   }
 
   Future<void> _loadData() async {
