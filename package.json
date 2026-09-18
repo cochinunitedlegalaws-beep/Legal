@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@aws-crypto/client-node": "^5.0.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1135.0",
     "aws-amplify": "^6.18.0",
     "nodemailer": "^9.0.3",
     "xlsx": "^0.18.5"
